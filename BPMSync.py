@@ -6,11 +6,11 @@ import pyaudio
 media_source = ""
 interval = 1
 original_speed = 0
+buff_size = 256
 
 class BPMTracker:
 
     def __init__(self):
-        buff_size = 512
         self.p = pyaudio.PyAudio()
         
         default_device_index = -1
@@ -48,14 +48,14 @@ class BPMTracker:
                              input_device_index = device_info["index"],
                              stream_callback = self._pyaudio_callback,
                              as_loopback = True)
-        self.tempo = aubio.tempo("default",1024,1024,44100)
+        self.tempo = aubio.tempo("default",buff_size,buff_size,44100)
         self.bpm = 1
 
     def _pyaudio_callback(self,
                           in_data,
                           frame_count,
                           time_info,status):
-        signal = np.frombuffer(in_data,dtype=np.float32)
+        signal = np.frombuffer(in_data,dtype=np.float32,count=buff_size)
         beat = self.tempo(signal)
         if beat[0]:
             self.bpm = self.tempo.get_bpm()
@@ -70,7 +70,7 @@ class BPMTracker:
 
 bpm_tracker = BPMTracker()
 
-def update_bpm(): # So, turns out there's an issue with the BPM alg, it breaks down at around 110~ish BPM, seems like beats become too frequent for it, so it reads half of them as back-beats.
+def update_bpm(): 
     global media_source
     global original_speed
     source = obs.obs_get_source_by_name(media_source)
